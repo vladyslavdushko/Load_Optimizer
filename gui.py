@@ -1,11 +1,20 @@
-import os
-os.environ["TCL_LIBRARY"] = "/opt/homebrew/opt/tcl-tk/lib/tcl8.6"
-os.environ["TK_LIBRARY"] = "/opt/homebrew/Cellar/tcl-tk/9.0.1/lib/tk9.0"
+# import os
+# os.environ["TCL_LIBRARY"] = "/opt/homebrew/opt/tcl-tk/lib/tcl8.6"
+# os.environ["TK_LIBRARY"] = "/opt/homebrew/Cellar/tcl-tk/9.0.1/lib/tk9.0"
 import tkinter as tk
+import threading, queue
 from tkinter import messagebox
 from optimizer import Container, Item, PackingOptimizer
 import matplotlib
-matplotlib.use('MacOSX')
+import platform
+from tkinter import ttk
+
+
+if platform.system() == 'Darwin':
+    matplotlib.use('MacOSX')
+else:
+    matplotlib.use('TkAgg')
+
 import matplotlib.pyplot as plt
 
 # Простий клас для реалізації tooltip
@@ -59,6 +68,7 @@ class Application(tk.Tk):
         self.summary_box = {}
         
         self.show_welcome_screen()
+        self.progress_q = queue.Queue()
         
     def show_welcome_screen(self):
         # Вітальне вікно з кнопкою для створення нового завантаження
@@ -156,6 +166,16 @@ class Application(tk.Tk):
             command=self.start_packing,
             state="disabled"  # спочатку вимкнена, поки не додано хоча б одну коробку
         )
+
+        self.progress = ttk.Progressbar(
+            self.input_frame, orient='horizontal',
+            length=200, mode='determinate'
+        )
+
+        self.progress.grid(row=14, column=0, columnspan=2, pady=5)
+        self.progress_lbl = tk.Label(self.input_frame, text="")
+        self.progress_lbl.grid(row=15, column=0, columnspan=2)
+
         self.start_packing_button.grid(row=13, column=0, columnspan=2, pady=10)
         
         # Оновлення правого блоку зі списком коробок
@@ -281,8 +301,8 @@ class Application(tk.Tk):
             depth=container_depth,
             max_weight=container_max_weight
         )
+
         optimizer = PackingOptimizer(container)
-        
         # Додавання коробок, зібраних через GUI
         for box in self.boxes_data:
             try:
@@ -298,13 +318,54 @@ class Application(tk.Tk):
                 messagebox.showerror("Помилка", f"Помилка при створенні об'єкта коробки: {str(e)}")
                 continue
             optimizer.add_item(item)
-        
-        # Запуск алгоритму упаковки
-        utilization = optimizer.pack()
-        messagebox.showinfo("Результати", f"Успішність пакування: {utilization:.2f}%")
+
+        self.start_packing_button.config(state="disabled")
+        self.progress['value'] = 0
+        self.progress_lbl.config(text="")
+
+        def run():
+            # ⬇️ передаємо СВОЮ функцію у pack()
+            optimizer.pack(
+                progress_cb=lambda done, total: self.progress_q.put((done, total))
+            )
+            # сигнал про завершення
+            self.progress_q.put(("DONE", optimizer))
+
+        threading.Thread(target=run, daemon=True).start()
+        self.after(100, self._poll_progress)  # починаємо слухати чергу
         
         # Візуалізація результатів – викликаємо через after, щоб не блокувати головний цикл
-        self.after(100, optimizer.visualize_packing)
+
+    def _poll_progress(self):
+        try:
+            msg = self.progress_q.get_nowait()
+        except queue.Empty:
+            self.after(100, self._poll_progress)
+            return
+
+        # повідомлення
+        if msg[0] == "DONE":
+            _, optimizer = msg
+            self.progress['value'] = self.progress['maximum']  # 100%
+            self.progress_lbl.config(text="Завершено")
+
+            # знову активуємо кнопку
+            self.start_packing_button.config(state="normal")
+
+            utilization = optimizer.space_utilization
+            messagebox.showinfo("Результати", f"Успішність пакування: {utilization:.2f}%")
+
+            # викликаємо візуалізацію після невеликої затримки,
+            # щоб вікно встигло оновитись
+            self.after(100, optimizer.visualize_packing)
+        else:
+            done, total = msg
+            self.progress['maximum'] = total
+            self.progress['value'] = done
+            self.progress_lbl.config(text=f"{done}/{total} ({done/total*100:.0f} %)" )
+
+            # кожні 100 мс перевіряємо, чи є нові дані
+            self.after(100, self._poll_progress)
 
 if __name__ == "__main__":
     app = Application()

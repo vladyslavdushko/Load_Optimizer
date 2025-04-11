@@ -7,6 +7,7 @@ import random
 import itertools
 from collections import defaultdict
 import time
+from typing import Callable
 
 
 @dataclass
@@ -281,25 +282,25 @@ class PackingOptimizer:
         container_volume = self.container.width * self.container.height * self.container.depth
         total_item_volume = 0
         total_item_weight = 0
+
         for item in self.items:
-            # Якщо немає специфічної форми, обʼєм = width * height * depth
             if item.shape is None:
                 volume = item.width * item.height * item.depth
             else:
-                # Приблизний обʼєм – кількість "1" у формі помножена на куб grid_size
                 volume = np.sum(item.shape) * (self.grid_size ** 3)
-            total_item_volume += volume * item.quantity
-            total_item_weight += item.weight * item.quantity
 
-        if total_item_volume > container_volume:
-            print("Попередження: Обʼєм коробок перевищує обʼєм контейнера.")
-            return False
+            # ──► КОПІЇ вже враховані, тому кількість більше не множимо
+            total_item_volume += volume
+            total_item_weight += item.weight
+
         if total_item_weight > self.container.max_weight:
-            print("Попередження: Загальна вага коробок перевищує максимальну вагу контейнера.")
-            return False
+            print("Попередження: Загальна вага коробок перевищує ліміт контейнера.")
+            # ► НЕ повертаємо False, а даємо алгоритму шанс покласти стільки,
+            #   скільки дозволяє вага
+            # return False          ← забираємо/коментуємо
         return True
 
-    def pack(self) -> float:
+    def pack(self, progress_cb: Optional[Callable[[int, int], None]] = None) -> float:
         # Перед розміщенням перевіряємо, чи допускається завантаження за обʼємом та вагою
         if not self.precheck():
             print("Неможливо розмістити коробки: обʼєм або вага перевищують можливості контейнера.")
@@ -316,6 +317,10 @@ class PackingOptimizer:
         container_volume = self.container.width * self.container.height * self.container.depth
 
         start_time = time.time()
+
+        total_items = len(self.items)
+        if progress_cb:
+            progress_cb(0, total_items)
 
         for item in self.items:
             if self.current_weight + item.weight > self.container.max_weight:
@@ -334,7 +339,11 @@ class PackingOptimizer:
 
         end_time = time.time()
         duration = end_time - start_time
-
+        for idx, item in enumerate(self.items, 1):
+            ...
+            # ► відправляємо прогрес
+            if progress_cb:
+                progress_cb(idx, total_items)
         self.space_utilization = (total_volume / container_volume) * 100
 
         final_weight = self.current_weight
