@@ -37,7 +37,7 @@ class PackingOptimizer:
         self.packed_items = []
         self.space_utilization = 0.0
         # Зменшено grid_size для точнішої дискретизації простору
-        self.grid_size = 2
+        self.grid_size = 100
         # Задаємо поріг підтримки (support_threshold) нижчим
         self.support_threshold = 0.3
         self.space_matrix = np.zeros((
@@ -239,10 +239,10 @@ class PackingOptimizer:
                                 best_pos = pos
                                 best_shape = shape.copy()
 
-        if best_pos is not None:
-            print(f"Для елемента '{item.name}' обрана позиція {best_pos} з контактом {max_contact}")
-        else:
-            print(f"Не знайдено допустимої позиції для елемента '{item.name}'")
+        # if best_pos is not None:
+        #     print(f"Для елемента '{item.name}' обрана позиція {best_pos} з контактом {max_contact}")
+        # else:
+        #     print(f"Не знайдено допустимої позиції для елемента '{item.name}'")
         return best_pos, best_shape
 
     def place_item(self, pos: Tuple[int, int, int], item: Item, shape: np.ndarray):

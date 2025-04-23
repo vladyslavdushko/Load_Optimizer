@@ -1,14 +1,15 @@
-# import os
-# os.environ["TCL_LIBRARY"] = "/opt/homebrew/opt/tcl-tk/lib/tcl8.6"
-# os.environ["TK_LIBRARY"] = "/opt/homebrew/Cellar/tcl-tk/9.0.1/lib/tk9.0"
+import os
+os.environ["TCL_LIBRARY"] = "/opt/homebrew/opt/tcl-tk/lib/tcl8.6"
+os.environ["TK_LIBRARY"] = "/opt/homebrew/Cellar/tcl-tk/9.0.1/lib/tk9.0"
+import time
 import tkinter as tk
 import threading, queue
-from tkinter import messagebox
+from tkinter import messagebox, filedialog
 from optimizer import Container, Item, PackingOptimizer
 import matplotlib
 import platform
 from tkinter import ttk
-
+import json, os
 
 if platform.system() == 'Darwin':
     matplotlib.use('MacOSX')
@@ -41,7 +42,7 @@ class ToolTip:
             tw,
             text=self.text,
             justify='left',
-            background="#ffffe0",  # світло-жовтий фон
+            background="#cfcf0a",  # світло-жовтий фон
             foreground="black",    # чорний текст
             relief='solid',
             borderwidth=1,
@@ -92,14 +93,29 @@ class Application(tk.Tk):
         
         # Створюємо контейнерний фрейм з двома колонками: зліва – введення даних, справа – список доданих коробок
         self.config_frame = tk.Frame(self)
-        self.config_frame.pack(expand=True, fill='both', padx=20, pady=20)
+        self.config_frame.pack(expand=True, fill='both', padx=10, pady=10)
         
         self.input_frame = tk.Frame(self.config_frame)
-        self.input_frame.grid(row=0, column=0, sticky="nsew", padx=(0, 10))
+        self.input_frame.grid(row=0, column=0, sticky="nsew", padx=(0, 5))
         
-        self.box_list_frame = tk.LabelFrame(self.config_frame, text="Додані коробки", padx=10, pady=10)
-        self.box_list_frame.grid(row=0, column=1, sticky="nsew")
+        self.box_list_frame = tk.LabelFrame(self.config_frame, text="Додані коробки", padx=5, pady=5)
+        self.box_list_frame.grid(row=0, column=1)
         
+        self.box_tree = ttk.Treeview(
+            self.box_list_frame, columns=("qty", "w", "h", "d", "weight"),
+            show = "headings", height = 5
+        )
+        self.box_tree.heading("qty", text="К-ть")
+        self.box_tree.heading("w", text="W")
+        self.box_tree.heading("h", text="H")
+        self.box_tree.heading("d", text="D")
+        self.box_tree.heading("weight", text="Кг")
+        self.box_tree.pack(fill="both")
+
+        edit_btn = tk.Button(self.box_list_frame, text="Змінити кількість",
+                     command=self.edit_selected_box)
+        edit_btn.pack(pady=2)
+
         # Налаштування розтягування колонок
         self.config_frame.columnconfigure(0, weight=3)
         self.config_frame.columnconfigure(1, weight=1)
@@ -127,7 +143,7 @@ class Application(tk.Tk):
         # Введення даних для коробок у input_frame
         boxes_label = tk.Label(self.input_frame, text="Додати коробки", font=("Arial", 14))
         boxes_label.grid(row=5, column=0, columnspan=2, pady=10)
-        
+
         tk.Label(self.input_frame, text="Назва коробки:").grid(row=6, column=0, sticky='e', padx=5, pady=5)
         self.box_name_entry = tk.Entry(self.input_frame)
         self.box_name_entry.grid(row=6, column=1, padx=5, pady=5)
@@ -157,8 +173,15 @@ class Application(tk.Tk):
             text="Додати коробку", 
             command=self.add_box
         )
+
         add_box_button.grid(row=12, column=0, columnspan=2, pady=10)
-        
+
+        load_json_btn = tk.Button(
+            self.input_frame, text="Зчитати JSON",
+            command=self.load_from_json
+        )
+        load_json_btn.grid(row=13, column=0, columnspan=2, pady=10)   
+
         # Кнопка для запуску процесу упаковки – вона завжди активна, якщо хоча б одна коробка додана
         self.start_packing_button = tk.Button(
             self.input_frame, 
@@ -172,14 +195,64 @@ class Application(tk.Tk):
             length=200, mode='determinate'
         )
 
-        self.progress.grid(row=14, column=0, columnspan=2, pady=5)
+        self.progress.grid(row=15, column=0, columnspan=2, pady=5)
         self.progress_lbl = tk.Label(self.input_frame, text="")
-        self.progress_lbl.grid(row=15, column=0, columnspan=2)
+        self.progress_lbl.grid(row=16, column=0, columnspan=2)
 
-        self.start_packing_button.grid(row=13, column=0, columnspan=2, pady=10)
+        self.start_packing_button.grid(row=14, column=0, columnspan=2, pady=10)
         
         # Оновлення правого блоку зі списком коробок
         self.update_box_list()
+
+    def load_from_json(self):
+        path = filedialog.askopenfilename(
+            title="Виберіть JSON‑файл",
+            filetypes=[("JSON files", "*.json"), ("All files", "*.*")]
+        )
+        if not path:
+            return
+
+        try:
+            with open(path, "r", encoding="utf-8") as f:
+                data = json.load(f)
+            if not isinstance(data, list) or len(data) < 2:
+                raise ValueError("JSON повинен містити контейнер + щонайменше 1 коробку")
+
+            # ---------- контейнер ----------
+            cont = data[0]
+            for key in ("width", "height", "depth", "max_weight"):
+                if key not in cont:
+                    raise ValueError(f"Контейнеру бракує поля '{key}'")
+
+            # заповнюємо поля вводу
+            self.container_width_entry.delete(0, tk.END);  self.container_width_entry.insert(0, cont["width"])
+            self.container_height_entry.delete(0, tk.END); self.container_height_entry.insert(0, cont["height"])
+            self.container_depth_entry.delete(0, tk.END);  self.container_depth_entry.insert(0, cont["depth"])
+            self.container_max_weight_entry.delete(0, tk.END); self.container_max_weight_entry.insert(0, cont["max_weight"])
+
+            # ---------- коробки ----------
+            self.boxes_data.clear()
+            self.summary_box.clear()
+
+            for box in data[1:]:
+                for key in ("name", "width", "height", "depth", "weight", "quantity"):
+                    if key not in box:
+                        raise ValueError(f"Коробці бракує поля '{key}'")
+
+                self.boxes_data.append(box)
+                self.summary_box.setdefault(box["name"], {
+                    "width": box["width"], "height": box["height"],
+                    "depth": box["depth"], "weight": box["weight"], "count": 0
+                })
+                self.summary_box[box["name"]]["count"] += box["quantity"]
+
+            self.update_box_list()
+            self.start_packing_button.config(state="normal")
+
+            messagebox.showinfo("Готово", f"Зчитано {len(self.boxes_data)} коробок з файлу.")
+        except Exception as e:
+            messagebox.showerror("Помилка JSON", str(e))
+
 
     def add_box(self):
         # Спочатку зчитуємо параметри контейнера з форми
@@ -262,26 +335,71 @@ class Application(tk.Tk):
         self.update_box_list()
 
     def update_box_list(self):
-        # Очищення фрейму зі списком коробок
-        for widget in self.box_list_frame.winfo_children():
-            widget.destroy()
+        # очистити
+        for row in self.box_tree.get_children():
+            self.box_tree.delete(row)
 
-        if not self.summary_box:
-            tk.Label(self.box_list_frame, text="Немає доданих коробок").pack()
+        for name, data in self.summary_box.items():
+            self.box_tree.insert(
+                "", "end", iid=name,   # iid == назва коробки
+                values=(data["count"], data["width"], data["height"],
+                        data["depth"], data["weight"])
+            )
+
+    def edit_selected_box(self):
+        selected = self.box_tree.focus()
+        if not selected:
+            messagebox.showinfo("Інфо", "Спершу виберіть коробку у списку.")
             return
 
-        # Для кожного типу коробок створюємо віджет-мітку з інформацією і прив'язуємо tooltip
-        for box_name, data in self.summary_box.items():
-            text = f"{box_name}: {data['count']} шт."
-            lbl = tk.Label(self.box_list_frame, text=text, anchor="w")
-            lbl.pack(fill="x", padx=5, pady=2)
-            tooltip_text = (
-                f"Ширина: {data['width']} мм\n"
-                f"Висота: {data['height']} мм\n"
-                f"Глибина: {data['depth']} мм\n"
-                f"Вага: {data['weight']} кг"
-            )
-            ToolTip(lbl, tooltip_text)
+        name = selected
+        current_qty = self.summary_box[name]["count"]
+
+        # невелике вікно вводу
+        win = tk.Toplevel(self)
+        win.title(f"Змінити кількість – {name}")
+        tk.Label(win, text="Нова кількість:").grid(row=0, column=0, padx=5, pady=5)
+        qty_entry = tk.Entry(win)
+        qty_entry.insert(0, str(current_qty))
+        qty_entry.grid(row=0, column=1, padx=5, pady=5)
+
+        def apply():
+            try:
+                new_qty = int(qty_entry.get())
+                if new_qty < 0:
+                    raise ValueError
+            except ValueError:
+                messagebox.showerror("Помилка", "Введіть невід’ємне ціле число.")
+                return
+
+            diff = new_qty - current_qty
+            self.summary_box[name]["count"] = new_qty
+
+            # синхронізуємо self.boxes_data --------------
+            if diff > 0:            # треба ДОДАТИ копії
+                for b in self.boxes_data:
+                    if b["name"] == name:
+                        b["quantity"] += diff
+                        break
+            else:                   # треба ЗМЕНШИТИ
+                for b in self.boxes_data:
+                    if b["name"] == name:
+                        b["quantity"] = max(0, b["quantity"] + diff)
+                        break
+            # якщо кількість стала 0 – прибираємо запис
+            if new_qty == 0:
+                self.boxes_data = [b for b in self.boxes_data if b["name"] != name]
+                del self.summary_box[name]
+
+            self.update_box_list()
+            win.destroy()
+
+            # якщо списки порожні – вимикаємо кнопку «Почати упаковку»
+            if not self.boxes_data:
+                self.start_packing_button.config(state="disabled")
+
+        tk.Button(win, text="OK", command=apply).grid(row=1, column=0, columnspan=2, pady=5)
+
 
     def start_packing(self):
         # Зчитування даних про контейнер
@@ -330,6 +448,7 @@ class Application(tk.Tk):
             )
             # сигнал про завершення
             self.progress_q.put(("DONE", optimizer))
+        self.start_time = time.time()          # ⬅️
 
         threading.Thread(target=run, daemon=True).start()
         self.after(100, self._poll_progress)  # починаємо слухати чергу
@@ -346,8 +465,10 @@ class Application(tk.Tk):
         # повідомлення
         if msg[0] == "DONE":
             _, optimizer = msg
+            total_time = time.time() - self.start_time
+            self.progress_lbl.config(text=f"Завершено за {total_time:.1f} с")
+
             self.progress['value'] = self.progress['maximum']  # 100%
-            self.progress_lbl.config(text="Завершено")
 
             # знову активуємо кнопку
             self.start_packing_button.config(state="normal")
@@ -358,14 +479,19 @@ class Application(tk.Tk):
             # викликаємо візуалізацію після невеликої затримки,
             # щоб вікно встигло оновитись
             self.after(100, optimizer.visualize_packing)
-        else:
+        else:  # отримали (done, total)
             done, total = msg
-            self.progress['maximum'] = total
-            self.progress['value'] = done
-            self.progress_lbl.config(text=f"{done}/{total} ({done/total*100:.0f} %)" )
+            elapsed = time.time() - self.start_time   # ⬅️ секунд від початку
 
-            # кожні 100 мс перевіряємо, чи є нові дані
+            self.progress['maximum'] = total
+            self.progress['value']   = done
+            percent = done / total * 100
+            self.progress_lbl.config(
+                text=f"{done}/{total}  ({percent:.0f} %)   {elapsed:.1f} с"
+            )
+
             self.after(100, self._poll_progress)
+
 
 if __name__ == "__main__":
     app = Application()
