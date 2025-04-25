@@ -401,10 +401,18 @@ class PackingOptimizer:
         ax.set_ylabel('Глибина')
         ax.set_zlabel('Висота')
 
-        max_dim = max(self.container.width, self.container.height, self.container.depth)
-        ax.set_xlim(0, max_dim)
-        ax.set_ylim(0, max_dim)
-        ax.set_zlim(0, max_dim)
+        ax.set_xlim(0, self.container.width)
+        ax.set_ylim(0, self.container.depth)
+        ax.set_zlim(0, self.container.height)
+
+        try:
+            ax.set_box_aspect((
+                self.container.width,
+                self.container.depth,
+                self.container.height
+            ))
+        except AttributeError:
+            pass
 
         plt.title(f'3D Візуалізація Пакування\nВикористання простору: {self.space_utilization:.2f}%')
         plt.show()

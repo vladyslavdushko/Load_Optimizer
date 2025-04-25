@@ -1,15 +1,19 @@
-import os
-os.environ["TCL_LIBRARY"] = "/opt/homebrew/opt/tcl-tk/lib/tcl8.6"
-os.environ["TK_LIBRARY"] = "/opt/homebrew/Cellar/tcl-tk/9.0.1/lib/tk9.0"
+# import os
+# os.environ["TCL_LIBRARY"] = "/opt/homebrew/opt/tcl-tk/lib/tcl8.6"
+# os.environ["TK_LIBRARY"] = "/opt/homebrew/Cellar/tcl-tk/9.0.1/lib/tk9.0"
 import time
 import tkinter as tk
 import threading, queue
 from tkinter import messagebox, filedialog
 from optimizer import Container, Item, PackingOptimizer
 import matplotlib
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2Tk
 import platform
 from tkinter import ttk
 import json, os
+import numpy as np
+from mpl_toolkits.mplot3d.art3d import Poly3DCollection
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2Tk
 
 if platform.system() == 'Darwin':
     matplotlib.use('MacOSX')
@@ -61,7 +65,8 @@ class Application(tk.Tk):
         super().__init__()
         self.title("3D Bin Packing")
         self.geometry("800x600")
-        
+        self.minsize(800, 600)
+
         self.container_data = None
         # self.boxes_data – список словників з даними коробок
         self.boxes_data = []  
@@ -94,22 +99,43 @@ class Application(tk.Tk):
         # Створюємо контейнерний фрейм з двома колонками: зліва – введення даних, справа – список доданих коробок
         self.config_frame = tk.Frame(self)
         self.config_frame.pack(expand=True, fill='both', padx=10, pady=10)
-        
+
+        # після створення config_frame
+        self.config_frame.rowconfigure(0, weight=1)
+        self.config_frame.columnconfigure(0, weight=3)
+        self.config_frame.columnconfigure(1, weight=1)
+
         self.input_frame = tk.Frame(self.config_frame)
         self.input_frame.grid(row=0, column=0, sticky="nsew", padx=(0, 5))
         
         self.box_list_frame = tk.LabelFrame(self.config_frame, text="Додані коробки", padx=5, pady=5)
         self.box_list_frame.grid(row=0, column=1)
-        
+
         self.box_tree = ttk.Treeview(
-            self.box_list_frame, columns=("qty", "w", "h", "d", "weight"),
-            show = "headings", height = 5
+            self.box_list_frame,
+            columns=("name", "qty", "w", "h", "d", "weight"),
+            show="headings", height=5
+
         )
+        self.box_tree.heading("name", text="Назва")
         self.box_tree.heading("qty", text="К-ть")
         self.box_tree.heading("w", text="W")
         self.box_tree.heading("h", text="H")
         self.box_tree.heading("d", text="D")
         self.box_tree.heading("weight", text="Кг")
+        # Після налаштування заголовків
+        column_sizes = {
+            "name": (120, 80),
+            "qty": (50, 30),
+            "w": (50, 30),
+            "h": (50, 30),
+            "d": (50, 30),
+            "weight": (60, 40),
+        }
+        for col, (w, minw) in column_sizes.items():
+            # width — початкова ширина; minwidth — мінімально допустима
+            self.box_tree.column(col, width=w, minwidth=minw, anchor='center')
+
         self.box_tree.pack(fill="both")
 
         edit_btn = tk.Button(self.box_list_frame, text="Змінити кількість",
@@ -253,7 +279,6 @@ class Application(tk.Tk):
         except Exception as e:
             messagebox.showerror("Помилка JSON", str(e))
 
-
     def add_box(self):
         # Спочатку зчитуємо параметри контейнера з форми
         try:
@@ -341,9 +366,15 @@ class Application(tk.Tk):
 
         for name, data in self.summary_box.items():
             self.box_tree.insert(
-                "", "end", iid=name,   # iid == назва коробки
-                values=(data["count"], data["width"], data["height"],
-                        data["depth"], data["weight"])
+                "", "end", iid=name,
+                values=(
+                    name,
+                    data["count"],
+                    data["width"],
+                    data["height"],
+                    data["depth"],
+                    data["weight"]
+                )
             )
 
     def edit_selected_box(self):
@@ -400,7 +431,6 @@ class Application(tk.Tk):
 
         tk.Button(win, text="OK", command=apply).grid(row=1, column=0, columnspan=2, pady=5)
 
-
     def start_packing(self):
         # Зчитування даних про контейнер
         try:
@@ -452,7 +482,7 @@ class Application(tk.Tk):
 
         threading.Thread(target=run, daemon=True).start()
         self.after(100, self._poll_progress)  # починаємо слухати чергу
-        
+
         # Візуалізація результатів – викликаємо через after, щоб не блокувати головний цикл
 
     def _poll_progress(self):
@@ -478,7 +508,7 @@ class Application(tk.Tk):
 
             # викликаємо візуалізацію після невеликої затримки,
             # щоб вікно встигло оновитись
-            self.after(100, optimizer.visualize_packing)
+            self.after(100, lambda: self.show_visualization(optimizer))
         else:  # отримали (done, total)
             done, total = msg
             elapsed = time.time() - self.start_time   # ⬅️ секунд від початку
@@ -492,6 +522,110 @@ class Application(tk.Tk):
 
             self.after(100, self._poll_progress)
 
+    def show_visualization(self, optimizer: PackingOptimizer):
+        win = tk.Toplevel(self)
+        win.title("3D Візуалізація пакування")
+
+        # Панель чекбоксів
+        controls = tk.Frame(win)
+        controls.pack(side=tk.LEFT, fill=tk.Y, padx=5, pady=5)
+
+        # Фігура і вісь
+        fig = plt.Figure(figsize=(8, 6))
+        ax = fig.add_subplot(111, projection='3d')
+        # Вимикаємо показ координат курсору
+        ax.format_coord = lambda x, y: ""
+        # Малюємо контейнер
+        optimizer._draw_container(ax)
+
+        # Збираємо полигони та тексти по назвах коробок
+        artists_by_name: dict[str, list] = {}
+        for item in optimizer.packed_items:
+            x, y, z = item['position']
+            w, d, h = item['size']
+            color = item['color']
+            verts = [
+                [x, y, z], [x, y + d, z], [x + w, y + d, z], [x + w, y, z],
+                [x, y, z + h], [x, y + d, z + h], [x + w, y + d, z + h], [x + w, y, z + h]
+            ]
+            faces = [
+                [verts[0], verts[1], verts[2], verts[3]],
+                [verts[4], verts[5], verts[6], verts[7]],
+                [verts[0], verts[1], verts[5], verts[4]],
+                [verts[2], verts[3], verts[7], verts[6]],
+                [verts[0], verts[3], verts[7], verts[4]],
+                [verts[1], verts[2], verts[6], verts[5]],
+            ]
+            poly = Poly3DCollection(faces, facecolors=[(*color, 0.5)],
+                                    edgecolors='k', linewidths=0.5, alpha=0.5)
+            ax.add_collection3d(poly)
+            artists_by_name.setdefault(item['name'], []).append(poly)
+
+            center = np.array([x + w / 2, y + d / 2, z + h / 2])
+            txt = ax.text(
+                center[0], center[1], center[2],
+                item['name'], fontsize=8, ha='center', va='center'
+            )
+            artists_by_name[item['name']].append(txt)
+
+        # Межі та пропорції осей
+        ax.set_xlim(0, optimizer.container.width)
+        ax.set_ylim(0, optimizer.container.depth)
+        ax.set_zlim(0, optimizer.container.height)
+        try:
+            ax.set_box_aspect((
+                optimizer.container.width,
+                optimizer.container.depth,
+                optimizer.container.height
+            ))
+        except AttributeError:
+            pass
+
+        # Вбудовуємо canvas і toolbar
+        canvas = FigureCanvasTkAgg(fig, master=win)
+        canvas.draw()
+        canvas.get_tk_widget().pack(side=tk.RIGHT, fill='both', expand=True)
+        toolbar = NavigationToolbar2Tk(canvas, win)
+        toolbar.update()
+        toolbar.pack(side=tk.BOTTOM, fill='x')
+
+        # Підготовка змінних для чекбоксів
+        var_by_name: dict[str, tk.BooleanVar] = {}
+
+        # Глобальний чекбокс «Усі коробки»
+        all_var = tk.BooleanVar(value=True)
+
+        def toggle_all():
+            state = all_var.get()
+            for name, var in var_by_name.items():
+                var.set(state)
+                for art in artists_by_name[name]:
+                    art.set_visible(state)
+            canvas.draw()
+
+        cb_all = tk.Checkbutton(
+            controls, text="Усі коробки",
+            variable=all_var, command=toggle_all
+        )
+        cb_all.pack(anchor='w', pady=(0, 10))
+
+        # Індивідуальні чекбокси по назвах
+        for name in artists_by_name:
+            var = tk.BooleanVar(value=True)
+            var_by_name[name] = var
+
+            def make_callback(n, v):
+                return lambda: (
+                    [art.set_visible(v.get()) for art in artists_by_name[n]],
+                    canvas.draw()
+                )
+
+            cb = tk.Checkbutton(
+                controls, text=name,
+                variable=var,
+                command=make_callback(name, var)
+            )
+            cb.pack(anchor='w')
 
 if __name__ == "__main__":
     app = Application()
