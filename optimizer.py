@@ -8,7 +8,9 @@ import itertools
 from collections import defaultdict
 import time
 from typing import Callable
-
+from matplotlib.widgets import CheckButtons
+from mpl_toolkits.mplot3d.art3d import Poly3DCollection
+import matplotlib.pyplot as plt
 
 @dataclass
 class Item:
@@ -388,23 +390,65 @@ class PackingOptimizer:
             'space_utilization': self.space_utilization
         }
 
-    def visualize_packing(self):
+
+
+    def visualize_packing(self, show: bool = True) -> plt.Figure:
+        """
+        Відображає 3D-пакування в окремому вікні із чекбоксами для
+        включення/виключення окремих коробок. Повертає об’єкт Figure.
+        """
+        # 1. Створюємо фігуру та вісь
         fig = plt.figure(figsize=(12, 8))
         ax = fig.add_subplot(111, projection='3d')
 
+        # 2. Малюємо контейнер
         self._draw_container(ax)
 
+        # 3. Малюємо коробки, збираючи артисти та назви
+        item_artists = []
+        labels = []
         for item in self.packed_items:
-            self._draw_item(ax, item)
+            x, y, z = item['position']
+            w, d, h = item['size']
 
+            # Вершини та грані коробки
+            verts = [
+                [x, y, z], [x, y + d, z], [x + w, y + d, z], [x + w, y, z],
+                [x, y, z + h], [x, y + d, z + h], [x + w, y + d, z + h], [x + w, y, z + h]
+            ]
+            faces = [
+                [verts[0], verts[1], verts[2], verts[3]],
+                [verts[4], verts[5], verts[6], verts[7]],
+                [verts[0], verts[1], verts[5], verts[4]],
+                [verts[2], verts[3], verts[7], verts[6]],
+                [verts[0], verts[3], verts[7], verts[4]],
+                [verts[1], verts[2], verts[6], verts[5]],
+            ]
+
+            poly = Poly3DCollection(
+                faces,
+                facecolors=[(*item['color'], 0.5)],
+                edgecolors='k',
+                linewidths=0.5,
+                alpha=0.5
+            )
+            ax.add_collection3d(poly)
+            item_artists.append(poly)
+            labels.append(item['name'])
+
+            # Підписи в центрі коробки
+            cx, cy, cz = x + w/2, y + d/2, z + h/2
+            ax.text(cx, cy, cz, item['name'], fontsize=8, ha='center', va='center')
+
+        # 4. Осьові підписи та межі за реальними розмірами
         ax.set_xlabel('Ширина')
         ax.set_ylabel('Глибина')
         ax.set_zlabel('Висота')
-
         ax.set_xlim(0, self.container.width)
         ax.set_ylim(0, self.container.depth)
         ax.set_zlim(0, self.container.height)
 
+        # Пропорції контейнера за фізичними розмірами
         try:
             ax.set_box_aspect((
                 self.container.width,
@@ -412,10 +456,28 @@ class PackingOptimizer:
                 self.container.height
             ))
         except AttributeError:
+            # для старих версій matplotlib
             pass
 
-        plt.title(f'3D Візуалізація Пакування\nВикористання простору: {self.space_utilization:.2f}%')
-        plt.show()
+        plt.title(f'3D Візуалізація Пакування\n'
+                  f'Використання простору: {self.space_utilization:.2f}%')
+
+        # 5. Додаємо інтерактивні чекбокси
+        ax_checkbox = fig.add_axes([0.02, 0.4, 0.15, 0.2])
+        check = CheckButtons(ax_checkbox, labels, [True] * len(labels))
+
+        def on_check(label):
+            idx = labels.index(label)
+            artist = item_artists[idx]
+            artist.set_visible(not artist.get_visible())
+            fig.canvas.draw_idle()
+
+        check.on_clicked(on_check)
+
+        # 6. Відображаємо фігуру (якщо потрібно) і повертаємо її
+        if show:
+            fig.show()
+        return fig
 
     def _draw_container(self, ax):
         vertices = [

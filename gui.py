@@ -1,6 +1,6 @@
-# import os
-# os.environ["TCL_LIBRARY"] = "/opt/homebrew/opt/tcl-tk/lib/tcl8.6"
-# os.environ["TK_LIBRARY"] = "/opt/homebrew/Cellar/tcl-tk/9.0.1/lib/tk9.0"
+import os
+os.environ["TCL_LIBRARY"] = "/opt/homebrew/opt/tcl-tk/lib/tcl8.6"
+os.environ["TK_LIBRARY"] = "/opt/homebrew/Cellar/tcl-tk/9.0.1/lib/tk9.0"
 import time
 import tkinter as tk
 import threading, queue
@@ -14,6 +14,8 @@ import json, os
 import numpy as np
 from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2Tk
+from db import init_db, save_session_to_db, list_sessions, load_fig_from_db
+import sqlite3
 
 if platform.system() == 'Darwin':
     matplotlib.use('MacOSX')
@@ -21,6 +23,9 @@ else:
     matplotlib.use('TkAgg')
 
 import matplotlib.pyplot as plt
+
+DB_PATH = "sessions/packing_sessions.db"
+
 
 # Простий клас для реалізації tooltip
 class ToolTip:
@@ -59,13 +64,13 @@ class ToolTip:
             self.tipwindow.destroy()
             self.tipwindow = None
 
-
 class Application(tk.Tk):
     def __init__(self):
         super().__init__()
         self.title("3D Bin Packing")
-        self.geometry("800x600")
-        self.minsize(800, 600)
+        self.geometry("1000x800")
+        self.minsize(1000, 800)
+        init_db()
 
         self.container_data = None
         # self.boxes_data – список словників з даними коробок
@@ -77,28 +82,100 @@ class Application(tk.Tk):
         self.progress_q = queue.Queue()
         
     def show_welcome_screen(self):
-        # Вітальне вікно з кнопкою для створення нового завантаження
+        # очищуємо попередні фрейми
+        for widget in self.winfo_children():
+            widget.destroy()
+
+        # Головний фрейм
         self.welcome_frame = tk.Frame(self)
-        self.welcome_frame.pack(expand=True, fill='both')
-        
-        welcome_label = tk.Label(self.welcome_frame, text="Ласкаво просимо до 3D Bin Packing", font=("Arial", 16))
-        welcome_label.pack(pady=20)
-        
-        new_load_button = tk.Button(
-            self.welcome_frame, 
-            text="Створити нове завантаження", 
-            font=("Arial", 14), 
-            command=self.show_configuration_screen
-        )
-        new_load_button.pack(pady=10)
-    
+        self.welcome_frame.pack(expand=True, fill='both', padx=10, pady=10)
+
+        tk.Label(self.welcome_frame, text="Ласкаво просимо до 3D Bin Packing", font=("Arial", 16)).pack(pady=10)
+
+        # Кнопка для нової сесії
+        tk.Button(self.welcome_frame, text="Почати пакування", font=("Arial", 14),
+                  command=self.show_configuration_screen).pack(pady=5)
+
+        # Історія сесій
+        tk.Label(self.welcome_frame, text="Історія пакувань:", font=("Arial", 12)).pack(pady=(20,5))
+        self.history_tree = ttk.Treeview(self.welcome_frame, columns=("id","name","ts"), show="headings", height=8)
+        self.history_tree.heading("id", text="ID")
+        self.history_tree.heading("name", text="Назва")
+        self.history_tree.heading("ts", text="Дата/час")
+        self.history_tree.pack(fill="both", expand=True)
+
+        # Заповнюємо історію
+        for sess in list_sessions():
+            self.history_tree.insert("", "end", iid=sess["id"], values=(sess["id"], sess["name"], sess["timestamp"]))
+
+        # Show кнопка
+        tk.Button(self.welcome_frame, text="Show", command=self._on_history_show).pack(pady=5)
+
+    def _on_history_show(self):
+        sel = self.history_tree.focus()
+        if not sel:
+            messagebox.showinfo("Info", "Оберіть сесію зі списку")
+            return
+        self.load_and_show(int(sel))
+
+    def load_and_show(self, session_id: int):
+        try:
+            # завантажуємо з БД container, boxes та packed_items
+            conn = sqlite3.connect(DB_PATH)
+            c = conn.cursor()
+            c.execute(
+                """
+                SELECT container_json, packed_items_json
+                FROM sessions WHERE id = ?
+                """, (session_id,)
+            )
+            row = c.fetchone()
+            conn.close()
+            if not row:
+                raise ValueError(f"Session {session_id} not found")
+
+            cont_dict      = json.loads(row[0])
+            packed_items   = json.loads(row[1])
+
+            # створюємо контейнер і оптимізатор
+            container = Container(
+                width=cont_dict['width'],
+                height=cont_dict['height'],
+                depth=cont_dict['depth'],
+                max_weight=cont_dict['max_weight']
+            )
+            optimizer = PackingOptimizer(container)
+
+            # відновлюємо результат
+            optimizer.packed_items = packed_items
+
+            # обчислюємо заповнення простору для заголовка
+            vol_sum = sum(
+                item['size'][0] * item['size'][1] * item['size'][2]
+                for item in packed_items
+            )
+            total_vol = (container.width *
+                         container.depth *
+                         container.height)
+            optimizer.space_utilization = (vol_sum / total_vol) * 100
+
+            # показуємо вікно з вашою функцією-«show_visualization»
+            self.show_visualization(optimizer)
+
+        except Exception as e:
+            messagebox.showerror("Error", str(e))
+
     def show_configuration_screen(self):
-        # Видаляємо вітальне вікно
-        self.welcome_frame.destroy()
-        
-        # Створюємо контейнерний фрейм з двома колонками: зліва – введення даних, справа – список доданих коробок
+        for widget in self.winfo_children():
+            widget.destroy()
+
         self.config_frame = tk.Frame(self)
         self.config_frame.pack(expand=True, fill='both', padx=10, pady=10)
+
+        # Назва сесії
+        tk.Label(self.config_frame, text="Назва сесії:").grid(row=0, column=0, sticky='e', padx=5, pady=5)
+        self.session_name_entry = tk.Entry(self.config_frame)
+        self.session_name_entry.grid(row=0, column=1, padx=5, pady=5)
 
         # після створення config_frame
         self.config_frame.rowconfigure(0, weight=1)
@@ -142,10 +219,15 @@ class Application(tk.Tk):
                      command=self.edit_selected_box)
         edit_btn.pack(pady=2)
 
+
         # Налаштування розтягування колонок
         self.config_frame.columnconfigure(0, weight=3)
         self.config_frame.columnconfigure(1, weight=1)
         
+        # Кнопка «Назад»
+        tk.Button(self.config_frame, text="← Назад",
+                  command=self.show_welcome_screen).grid(row=0, column=2, sticky='nw', padx=5, pady=5)
+
         # Введення параметрів контейнера у input_frame
         container_label = tk.Label(self.input_frame, text="Розміри контейнера", font=("Arial", 14))
         container_label.grid(row=0, column=0, columnspan=2, pady=10)
@@ -207,6 +289,11 @@ class Application(tk.Tk):
             command=self.load_from_json
         )
         load_json_btn.grid(row=13, column=0, columnspan=2, pady=10)   
+
+        # Перед кнопкою "Почати упаковку"
+        tk.Label(self.input_frame, text="Назва сесії:").grid(row=5, column=0, sticky='e', padx=5, pady=5)
+        self.session_name_entry = tk.Entry(self.input_frame)
+        self.session_name_entry.grid(row=5, column=1, padx=5, pady=5)
 
         # Кнопка для запуску процесу упаковки – вона завжди активна, якщо хоча б одна коробка додана
         self.start_packing_button = tk.Button(
@@ -492,23 +579,71 @@ class Application(tk.Tk):
             self.after(100, self._poll_progress)
             return
 
+        if msg[0] == "DONE":
+            _, optimizer = msg
+
+            # 1) Створюємо фігуру, але не малюємо її на екрані
+            fig = optimizer.visualize_packing(show=False)
+
+            # 2) Формуємо дані для збереження
+            container = {
+                "width": float(self.container_width_entry.get()),
+                "height": float(self.container_height_entry.get()),
+                "depth": float(self.container_depth_entry.get()),
+                "max_weight": float(self.container_max_weight_entry.get())
+            }
+            boxes = self.boxes_data.copy()
+            name = self.session_name_entry.get().strip() or f"Сесія {time.strftime('%Y-%m-%d %H:%M:%S')}"
+
+            # 3) Зберігаємо в БД
+            session_id = save_session_to_db(name, container, boxes, fig, optimizer.packed_items)
+
+            print(f"[DB] Збережено сесію #{session_id} — «{name}»")
+
+            # 4) Відкриваємо вікно візуалізації замість fig.show()
+            self.show_visualization(optimizer)
+
+            messagebox.showinfo("Готово", f"Пакування збережено як «{name}»")
+        else:
+            done, total = msg
+            elapsed = time.time() - self.start_time
+
+            self.progress['maximum'] = total
+            self.progress['value']   = done
+            percent = done / total * 100
+            self.progress_lbl.config(
+                text=f"{done}/{total}  ({percent:.0f} %)   {elapsed:.1f} с"
+            )
+
+            self.after(100, self._poll_progress)
+
+        try:
+            msg = self.progress_q.get_nowait()
+        except queue.Empty:
+            self.after(100, self._poll_progress)
+            return
+
         # повідомлення
         if msg[0] == "DONE":
             _, optimizer = msg
-            total_time = time.time() - self.start_time
-            self.progress_lbl.config(text=f"Завершено за {total_time:.1f} с")
 
-            self.progress['value'] = self.progress['maximum']  # 100%
+            container = {
+                "width": float(self.container_width_entry.get()),
+                "height": float(self.container_height_entry.get()),
+                "depth": float(self.container_depth_entry.get()),
+                "max_weight": float(self.container_max_weight_entry.get())
+            }
+            boxes = self.boxes_data.copy()
+            name = self.session_name_entry.get().strip() or f"Сесія {time.strftime('%Y-%m-%d %H:%M:%S')}"
 
-            # знову активуємо кнопку
-            self.start_packing_button.config(state="normal")
+            # 3) Зберігаємо в БД
+            session_id = save_session_to_db(name, container, boxes, fig)
+            print(f"[DB] Збережено сесію #{session_id} — «{name}»")
 
-            utilization = optimizer.space_utilization
-            messagebox.showinfo("Результати", f"Успішність пакування: {utilization:.2f}%")
+            # замість fig.show() — викликаємо власне Toplevel
+            self.show_visualization(optimizer)
+            messagebox.showinfo(...)
 
-            # викликаємо візуалізацію після невеликої затримки,
-            # щоб вікно встигло оновитись
-            self.after(100, lambda: self.show_visualization(optimizer))
         else:  # отримали (done, total)
             done, total = msg
             elapsed = time.time() - self.start_time   # ⬅️ секунд від початку
