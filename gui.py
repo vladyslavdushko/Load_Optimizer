@@ -14,7 +14,7 @@ import json, os
 import numpy as np
 from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2Tk
-from db import init_db, save_session_to_db, list_sessions, load_fig_from_db
+from db import init_db, save_session_to_db, list_sessions, load_fig_from_db, delete_session
 import sqlite3
 
 if platform.system() == 'Darwin':
@@ -109,7 +109,10 @@ class Application(tk.Tk):
             self.history_tree.insert("", "end", iid=sess["id"], values=(sess["id"], sess["name"], sess["timestamp"]))
 
         # Show кнопка
-        tk.Button(self.welcome_frame, text="Show", command=self._on_history_show).pack(pady=5)
+        btn_frame = tk.Frame(self.welcome_frame)
+        btn_frame.pack(pady=5)
+        tk.Button(btn_frame, text="Переглянути", command=self._on_history_show).pack(pady=5)
+        tk.Button(btn_frame, text="Видалити", width=10, command=self._on_history_delete).pack(side="left", padx=5)
 
     def _on_history_show(self):
         sel = self.history_tree.focus()
@@ -117,6 +120,30 @@ class Application(tk.Tk):
             messagebox.showinfo("Info", "Оберіть сесію зі списку")
             return
         self.load_and_show(int(sel))
+
+    def _on_history_delete(self):
+        sel = self.history_tree.focus()
+        if not sel:
+            messagebox.showinfo("Інфо", "Оберіть сесію для видалення")
+            return
+
+        # Підтвердження видалення
+        name = self.history_tree.item(sel, "values")[1]
+        if not messagebox.askyesno(
+            "Підтвердження",
+            f"Ви дійсно бажаєте видалити сесію:\n«{name}» (ID={sel})?"
+        ):
+            return
+
+        # Видаляємо з БД і з дерева
+        try:
+            from db import delete_session
+            delete_session(int(sel))
+            self.history_tree.delete(sel)
+            messagebox.showinfo("Готово", f"Сесію «{name}» видалено.")
+        except Exception as e:
+            messagebox.showerror("Помилка", f"Не вдалося видалити сесію: {e}")
+
 
     def load_and_show(self, session_id: int):
         try:

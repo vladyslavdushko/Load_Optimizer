@@ -102,3 +102,14 @@ def load_fig_from_db(session_id: int, db_path: str = DB_PATH):
         raise ValueError(f"Session {session_id} not found")
     fig = pickle.loads(row[0])
     return fig
+
+def delete_session(session_id: int, db_path: str = DB_PATH) -> None:
+    """
+    Видаляє сесію з бази за її id.
+    """
+    conn = sqlite3.connect(db_path)
+    c = conn.cursor()
+    c.execute("DELETE FROM sessions WHERE id = ?", (session_id,))
+    conn.commit()
+    conn.close()
+
