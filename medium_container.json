@@ -1,0 +1,40 @@
+[
+  {
+    "width": 2438,
+    "height": 2600,
+    "depth": 6058,
+    "max_weight": 24000
+  },
+  {
+    "name": "TV",
+    "width": 707,
+    "height": 564,
+    "depth": 1036,
+    "weight": 95.4,
+    "quantity": 4
+  },
+  {
+    "name": "Refrigerator",
+    "width": 725,
+    "height": 572,
+    "depth": 574,
+    "weight": 52.6,
+    "quantity": 5
+  },
+  {
+    "name": "Microwave",
+    "width": 401,
+    "height": 430,
+    "depth": 606,
+    "weight": 19.8,
+    "quantity": 6
+  },
+  {
+    "name": "Office Chair",
+    "width": 540,
+    "height": 540,
+    "depth": 600,
+    "weight": 20.5,
+    "quantity": 5
+  }
+]

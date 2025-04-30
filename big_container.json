@@ -1,0 +1,56 @@
+[
+  {
+    "width": 2438,
+    "height": 2591,
+    "depth": 12192,
+    "max_weight": 26000
+  },
+  {
+    "name": "Refrigerator",
+    "width": 725,
+    "height": 572,
+    "depth": 574,
+    "weight": 52.6,
+    "quantity": 15
+  },
+  {
+    "name": "TV",
+    "width": 707,
+    "height": 564,
+    "depth": 1036,
+    "weight": 95.4,
+    "quantity": 10
+  },
+  {
+    "name": "Washing Machine",
+    "width": 543,
+    "height": 543,
+    "depth": 1134,
+    "weight": 65.4,
+    "quantity": 8
+  },
+  {
+    "name": "Sofa",
+    "width": 781,
+    "height": 592,
+    "depth": 1119,
+    "weight": 118.2,
+    "quantity": 4
+  },
+  {
+    "name": "Table",
+    "width": 635,
+    "height": 389,
+    "depth": 773,
+    "weight": 53.2,
+    "quantity": 10
+  },
+  {
+    "name": "Microwave",
+    "width": 401,
+    "height": 430,
+    "depth": 606,
+    "weight": 19.8,
+    "quantity": 12
+  }
+]
