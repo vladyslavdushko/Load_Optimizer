@@ -1,0 +1,728 @@
+[
+    {
+        "width": 2438,
+        "height": 2591,
+        "depth": 12192,
+        "max_weight": 26000
+    },
+    {
+        "id": 1,
+        "name": "Box 1",
+        "width": 430,
+        "height": 562,
+        "depth": 720,
+        "weight": 19.6,
+        "quantity": 5
+    },
+    {
+        "id": 2,
+        "name": "Box 2",
+        "width": 455,
+        "height": 431,
+        "depth": 577,
+        "weight": 15.9,
+        "quantity": 5
+    },
+    {
+        "id": 3,
+        "name": "Box 3",
+        "width": 725,
+        "height": 572,
+        "depth": 574,
+        "weight": 52.6,
+        "quantity": 5
+    },
+    {
+        "id": 4,
+        "name": "Box 4",
+        "width": 395,
+        "height": 355,
+        "depth": 1108,
+        "weight": 40.1,
+        "quantity": 3
+    },
+    {
+        "id": 5,
+        "name": "Box 5",
+        "width": 707,
+        "height": 564,
+        "depth": 1036,
+        "weight": 95.4,
+        "quantity": 9
+    },
+    {
+        "id": 6,
+        "name": "Box 6",
+        "width": 735,
+        "height": 520,
+        "depth": 460,
+        "weight": 19.2,
+        "quantity": 7
+    },
+    {
+        "id": 7,
+        "name": "Box 7",
+        "width": 306,
+        "height": 489,
+        "depth": 831,
+        "weight": 31.6,
+        "quantity": 1
+    },
+    {
+        "id": 8,
+        "name": "Box 8",
+        "width": 516,
+        "height": 376,
+        "depth": 668,
+        "weight": 31.9,
+        "quantity": 8
+    },
+    {
+        "id": 9,
+        "name": "Box 9",
+        "width": 543,
+        "height": 543,
+        "depth": 1134,
+        "weight": 65.4,
+        "quantity": 8
+    },
+    {
+        "id": 10,
+        "name": "Box 10",
+        "width": 710,
+        "height": 465,
+        "depth": 1110,
+        "weight": 94.5,
+        "quantity": 8
+    },
+    {
+        "id": 11,
+        "name": "Box 11",
+        "width": 596,
+        "height": 320,
+        "depth": 963,
+        "weight": 19.1,
+        "quantity": 6
+    },
+    {
+        "id": 12,
+        "name": "Box 12",
+        "width": 543,
+        "height": 459,
+        "depth": 1084,
+        "weight": 61.5,
+        "quantity": 7
+    },
+    {
+        "id": 13,
+        "name": "Box 13",
+        "width": 635,
+        "height": 389,
+        "depth": 773,
+        "weight": 53.2,
+        "quantity": 8
+    },
+    {
+        "id": 14,
+        "name": "Box 14",
+        "width": 781,
+        "height": 592,
+        "depth": 1119,
+        "weight": 118.2,
+        "quantity": 2
+    },
+    {
+        "id": 15,
+        "name": "Box 15",
+        "width": 432,
+        "height": 463,
+        "depth": 953,
+        "weight": 31.8,
+        "quantity": 9
+    },
+    {
+        "id": 16,
+        "name": "Box 16",
+        "width": 403,
+        "height": 552,
+        "depth": 486,
+        "weight": 23.4,
+        "quantity": 8
+    },
+    {
+        "id": 17,
+        "name": "Box 17",
+        "width": 562,
+        "height": 415,
+        "depth": 604,
+        "weight": 24.0,
+        "quantity": 9
+    },
+    {
+        "id": 18,
+        "name": "Box 18",
+        "width": 493,
+        "height": 575,
+        "depth": 639,
+        "weight": 20.6,
+        "quantity": 8
+    },
+    {
+        "id": 19,
+        "name": "Box 19",
+        "width": 539,
+        "height": 429,
+        "depth": 560,
+        "weight": 36.5,
+        "quantity": 7
+    },
+    {
+        "id": 20,
+        "name": "Box 20",
+        "width": 401,
+        "height": 430,
+        "depth": 606,
+        "weight": 19.8,
+        "quantity": 1
+    },
+    {
+        "id": 21,
+        "name": "Box 21",
+        "width": 645,
+        "height": 507,
+        "depth": 483,
+        "weight": 44.8,
+        "quantity": 2
+    },
+    {
+        "id": 22,
+        "name": "Box 22",
+        "width": 551,
+        "height": 496,
+        "depth": 807,
+        "weight": 65.1,
+        "quantity": 8
+    },
+    {
+        "id": 23,
+        "name": "Box 23",
+        "width": 481,
+        "height": 558,
+        "depth": 587,
+        "weight": 37.2,
+        "quantity": 4
+    },
+    {
+        "id": 24,
+        "name": "Box 24",
+        "width": 640,
+        "height": 458,
+        "depth": 515,
+        "weight": 17.3,
+        "quantity": 6
+    },
+    {
+        "id": 25,
+        "name": "Box 24",
+        "width": 640,
+        "height": 458,
+        "depth": 515,
+        "weight": 17.3,
+        "quantity": 6
+    },
+    {
+        "id": 26,
+        "name": "Box 24",
+        "width": 640,
+        "height": 458,
+        "depth": 515,
+        "weight": 17.3,
+        "quantity": 6
+    },
+    {
+        "id": 27,
+        "name": "Box 24",
+        "width": 640,
+        "height": 458,
+        "depth": 515,
+        "weight": 17.3,
+        "quantity": 6
+    },
+    {
+        "id": 28,
+        "name": "Box 24",
+        "width": 640,
+        "height": 458,
+        "depth": 515,
+        "weight": 17.3,
+        "quantity": 6
+    },
+    {
+        "id": 29,
+        "name": "Box 24",
+        "width": 640,
+        "height": 458,
+        "depth": 515,
+        "weight": 17.3,
+        "quantity": 6
+    },
+    {
+        "id": 30,
+        "name": "Box 24",
+        "width": 640,
+        "height": 458,
+        "depth": 515,
+        "weight": 17.3,
+        "quantity": 6
+    },
+    {
+        "id": 31,
+        "name": "Box 24",
+        "width": 640,
+        "height": 458,
+        "depth": 515,
+        "weight": 17.3,
+        "quantity": 6
+    },
+    {
+        "id": 32,
+        "name": "Box 24",
+        "width": 640,
+        "height": 458,
+        "depth": 515,
+        "weight": 17.3,
+        "quantity": 6
+    },
+    {
+        "id": 33,
+        "name": "Box 24",
+        "width": 640,
+        "height": 458,
+        "depth": 515,
+        "weight": 17.3,
+        "quantity": 6
+    },
+    {
+        "id": 34,
+        "name": "Box 24",
+        "width": 640,
+        "height": 458,
+        "depth": 515,
+        "weight": 17.3,
+        "quantity": 6
+    },
+    {
+        "id": 35,
+        "name": "Box 24",
+        "width": 640,
+        "height": 458,
+        "depth": 515,
+        "weight": 17.3,
+        "quantity": 6
+    },
+    {
+        "id": 36,
+        "name": "Box 36",
+        "width": 781,
+        "height": 1030,
+        "depth": 367,
+        "weight": 63.6,
+        "quantity": 9
+    },
+    {
+        "id": 37,
+        "name": "Box 37",
+        "width": 855,
+        "height": 1133,
+        "depth": 1196,
+        "weight": 20.6,
+        "quantity": 9
+    },
+    {
+        "id": 38,
+        "name": "Box 38",
+        "width": 812,
+        "height": 888,
+        "depth": 373,
+        "weight": 39.6,
+        "quantity": 6
+    },
+    {
+        "id": 39,
+        "name": "Box 39",
+        "width": 665,
+        "height": 351,
+        "depth": 683,
+        "weight": 40.4,
+        "quantity": 4
+    },
+    {
+        "id": 40,
+        "name": "Box 40",
+        "width": 480,
+        "height": 574,
+        "depth": 1141,
+        "weight": 52.1,
+        "quantity": 2
+    },
+    {
+        "id": 41,
+        "name": "Box 41",
+        "width": 726,
+        "height": 974,
+        "depth": 1045,
+        "weight": 93.1,
+        "quantity": 5
+    },
+    {
+        "id": 42,
+        "name": "Box 42",
+        "width": 1093,
+        "height": 523,
+        "depth": 835,
+        "weight": 27.9,
+        "quantity": 1
+    },
+    {
+        "id": 43,
+        "name": "Box 43",
+        "width": 549,
+        "height": 504,
+        "depth": 886,
+        "weight": 28.5,
+        "quantity": 10
+    },
+    {
+        "id": 44,
+        "name": "Box 44",
+        "width": 605,
+        "height": 1067,
+        "depth": 447,
+        "weight": 27.7,
+        "quantity": 5
+    },
+    {
+        "id": 45,
+        "name": "Box 45",
+        "width": 831,
+        "height": 348,
+        "depth": 1072,
+        "weight": 16.3,
+        "quantity": 1
+    },
+    {
+        "id": 46,
+        "name": "Box 46",
+        "width": 796,
+        "height": 648,
+        "depth": 754,
+        "weight": 79.9,
+        "quantity": 5
+    },
+    {
+        "id": 47,
+        "name": "Box 47",
+        "width": 1120,
+        "height": 1028,
+        "depth": 300,
+        "weight": 79.3,
+        "quantity": 10
+    },
+    {
+        "id": 48,
+        "name": "Box 48",
+        "width": 886,
+        "height": 1172,
+        "depth": 834,
+        "weight": 10.7,
+        "quantity": 6
+    },
+    {
+        "id": 49,
+        "name": "Box 49",
+        "width": 799,
+        "height": 311,
+        "depth": 967,
+        "weight": 52.9,
+        "quantity": 1
+    },
+    {
+        "id": 50,
+        "name": "Box 50",
+        "width": 931,
+        "height": 868,
+        "depth": 621,
+        "weight": 89.4,
+        "quantity": 3
+    },
+    {
+        "id": 51,
+        "name": "Box 51",
+        "width": 481,
+        "height": 1084,
+        "depth": 1109,
+        "weight": 64.7,
+        "quantity": 8
+    },
+    {
+        "id": 52,
+        "name": "Box 52",
+        "width": 1025,
+        "height": 1070,
+        "depth": 525,
+        "weight": 11.8,
+        "quantity": 1
+    },
+    {
+        "id": 53,
+        "name": "Box 53",
+        "width": 864,
+        "height": 1025,
+        "depth": 355,
+        "weight": 66.6,
+        "quantity": 1
+    },
+    {
+        "id": 54,
+        "name": "Box 54",
+        "width": 977,
+        "height": 680,
+        "depth": 862,
+        "weight": 82.1,
+        "quantity": 5
+    },
+    {
+        "id": 55,
+        "name": "Box 55",
+        "width": 962,
+        "height": 1107,
+        "depth": 376,
+        "weight": 36.5,
+        "quantity": 2
+    },
+    {
+        "id": 56,
+        "name": "Box 56",
+        "width": 967,
+        "height": 975,
+        "depth": 591,
+        "weight": 63.2,
+        "quantity": 7
+    },
+    {
+        "id": 57,
+        "name": "Box 57",
+        "width": 966,
+        "height": 480,
+        "depth": 398,
+        "weight": 80.7,
+        "quantity": 4
+    },
+    {
+        "id": 58,
+        "name": "Box 58",
+        "width": 388,
+        "height": 470,
+        "depth": 813,
+        "weight": 28.2,
+        "quantity": 3
+    },
+    {
+        "id": 59,
+        "name": "Box 59",
+        "width": 1063,
+        "height": 391,
+        "depth": 1179,
+        "weight": 43.3,
+        "quantity": 3
+    },
+    {
+        "id": 60,
+        "name": "Box 60",
+        "width": 392,
+        "height": 540,
+        "depth": 1103,
+        "weight": 99.7,
+        "quantity": 5
+    },
+    {
+        "id": 61,
+        "name": "Box 61",
+        "width": 939,
+        "height": 448,
+        "depth": 1115,
+        "weight": 73.3,
+        "quantity": 6
+    },
+    {
+        "id": 62,
+        "name": "Box 62",
+        "width": 915,
+        "height": 880,
+        "depth": 881,
+        "weight": 39.2,
+        "quantity": 5
+    },
+    {
+        "id": 63,
+        "name": "Box 63",
+        "width": 820,
+        "height": 795,
+        "depth": 1066,
+        "weight": 91.0,
+        "quantity": 9
+    },
+    {
+        "id": 64,
+        "name": "Box 64",
+        "width": 855,
+        "height": 991,
+        "depth": 439,
+        "weight": 99.1,
+        "quantity": 6
+    },
+    {
+        "id": 65,
+        "name": "Box 65",
+        "width": 1009,
+        "height": 304,
+        "depth": 466,
+        "weight": 41.7,
+        "quantity": 7
+    },
+    {
+        "id": 66,
+        "name": "Box 66",
+        "width": 702,
+        "height": 1175,
+        "depth": 1095,
+        "weight": 62.1,
+        "quantity": 9
+    },
+    {
+        "id": 67,
+        "name": "Box 67",
+        "width": 711,
+        "height": 721,
+        "depth": 604,
+        "weight": 92.0,
+        "quantity": 10
+    },
+    {
+        "id": 68,
+        "name": "Box 68",
+        "width": 667,
+        "height": 552,
+        "depth": 1062,
+        "weight": 32.6,
+        "quantity": 9
+    },
+    {
+        "id": 69,
+        "name": "Box 69",
+        "width": 1049,
+        "height": 978,
+        "depth": 732,
+        "weight": 66.5,
+        "quantity": 1
+    },
+    {
+        "id": 70,
+        "name": "Box 70",
+        "width": 1131,
+        "height": 939,
+        "depth": 321,
+        "weight": 82.2,
+        "quantity": 10
+    },
+    {
+        "id": 71,
+        "name": "Box 71",
+        "width": 991,
+        "height": 518,
+        "depth": 887,
+        "weight": 32.3,
+        "quantity": 3
+    },
+    {
+        "id": 72,
+        "name": "Box 72",
+        "width": 358,
+        "height": 571,
+        "depth": 426,
+        "weight": 57.7,
+        "quantity": 9
+    },
+    {
+        "id": 73,
+        "name": "Box 73",
+        "width": 633,
+        "height": 1023,
+        "depth": 704,
+        "weight": 81.3,
+        "quantity": 3
+    },
+    {
+        "id": 74,
+        "name": "Box 74",
+        "width": 410,
+        "height": 954,
+        "depth": 1014,
+        "weight": 96.1,
+        "quantity": 3
+    },
+    {
+        "id": 75,
+        "name": "Box 75",
+        "width": 464,
+        "height": 492,
+        "depth": 901,
+        "weight": 66.0,
+        "quantity": 1
+    },
+    {
+        "id": 76,
+        "name": "Box 76",
+        "width": 1046,
+        "height": 507,
+        "depth": 597,
+        "weight": 41.0,
+        "quantity": 4
+    },
+    {
+        "id": 77,
+        "name": "Box 77",
+        "width": 337,
+        "height": 500,
+        "depth": 1038,
+        "weight": 63.5,
+        "quantity": 6
+    },
+    {
+        "id": 78,
+        "name": "Box 78",
+        "width": 911,
+        "height": 709,
+        "depth": 1199,
+        "weight": 31.9,
+        "quantity": 2
+    },
+    {
+        "id": 79,
+        "name": "Box 79",
+        "width": 883,
+        "height": 963,
+        "depth": 932,
+        "weight": 39.5,
+        "quantity": 7
+    },
+    {
+        "id": 80,
+        "name": "Box 80",
+        "width": 557,
+        "height": 686,
+        "depth": 846,
+        "weight": 32.7,
+        "quantity": 7
+    }
+]

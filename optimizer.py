@@ -308,16 +308,18 @@ class PackingOptimizer:
             print("Неможливо розмістити коробки: обʼєм або вага перевищують можливості контейнера.")
             return 0.0
 
+        # Ініціалізуємо лічильник непридатних коробок
         failed_items = defaultdict(int)
+
+        # Сортування предметів за пріоритетом (об'єм, площа, вага)
         self.items.sort(key=lambda x: (
             -(x.width * x.height * x.depth if x.shape is None else np.sum(x.shape) * (self.grid_size ** 3)),
             -(x.width * x.depth if x.shape is None else x.shape.shape[1] * x.shape.shape[2] * (self.grid_size ** 2)),
             -x.weight
         ))
 
-        total_volume = 0
+        total_volume = 0.0
         container_volume = self.container.width * self.container.height * self.container.depth
-
         start_time = time.time()
 
         total_items = len(self.items)
@@ -325,62 +327,52 @@ class PackingOptimizer:
             progress_cb(0, total_items)
 
         for item in self.items:
+            # Перевірка на ліміт за вагою
             if self.current_weight + item.weight > self.container.max_weight:
                 failed_items[item.name] += 1
                 continue
 
+            # Пошук найкращої позиції та форми
             best_pos, best_shape = self.find_best_position(item)
             if best_pos is not None and best_shape is not None:
+                # Розміщуємо предмет
                 self.place_item(best_pos, item, best_shape)
+                # Оновлюємо використаний об'єм
                 if item.shape is None:
                     total_volume += item.width * item.height * item.depth
                 else:
                     total_volume += np.sum(best_shape) * (self.grid_size ** 3)
             else:
+                # Не вдалося розмістити
                 failed_items[item.name] += 1
 
         end_time = time.time()
         duration = end_time - start_time
-        for idx, item in enumerate(self.items, 1):
-            ...
-            # ► відправляємо прогрес
+
+        # Оновлення прогресу
+        for idx, _ in enumerate(self.items, start=1):
             if progress_cb:
                 progress_cb(idx, total_items)
-        self.space_utilization = (total_volume / container_volume) * 100
 
+        # Обчислення відсотка використання об'єму
+        self.space_utilization = (total_volume / container_volume) * 100.0
+
+        # Зберігаємо непоміщені елементи для GUI
+        self.failed_items = dict(failed_items)
+
+        # Підготовка підсумкового звіту
         final_weight = self.current_weight
-
         packed_summary = defaultdict(lambda: {'count': 0, 'total_weight': 0.0})
         for packed_item in self.packed_items:
             packed_summary[packed_item['name']]['count'] += 1
             packed_summary[packed_item['name']]['total_weight'] += packed_item['weight']
 
         with open('result.txt', 'a', encoding='utf-8') as f:
-            f.write(f"### Результати Пакування\n")
-            f.write(
-                f"Розміри контейнера (W x H x D): {self.container.width} x {self.container.height} x {self.container.depth} мм\n")
-            f.write(f"Максимальна вага контейнера: {self.container.max_weight} кг\n\n")
-
-            f.write(f"Використання простору: {self.space_utilization:.2f}%\n")
-            f.write(f"Час виконання: {duration:.2f} секунд\n")
-            f.write(f"Фінальна вага контейнера: {final_weight} кг\n\n")
-
-            if failed_items:
-                f.write("Не вдалося розмістити наступні коробки:\n")
-                for name, count in failed_items.items():
-                    f.write(f" - {count} коробок типу '{name}'\n")
-                f.write("\n")
-
-            f.write("Успішно розміщені коробки:\n")
-            for name, data in packed_summary.items():
-                f.write(f" - {data['count']} коробок типу '{name}', загальна вага: {data['total_weight']} кг\n")
-            f.write("\n")
-
-            f.write("Деталі успішно розміщених коробок:\n")
-            for item in self.packed_items:
-                f.write(
-                    f"Назва: {item['name']}, Позиція: {item['position']}, Розмір: {item['size']}, Вага: {item['weight']} кг\n")
-            f.write("\n" + "=" * 50 + "\n\n")
+            f.write("### Результати Пакування\n")
+            f.write(f"Розміри контейнера (W x H x D): {self.container.width} x {self.container.height} x {self.container.depth} мм\n")
+            f.write(f"Час розрахунку: {duration:.2f} с\n")
+            f.write(f"Використання контейнера: {self.space_utilization:.2f}%\n")
+            f.write(f"Загальна вага: {final_weight:.2f} кг\n\n")
 
         return self.space_utilization
 

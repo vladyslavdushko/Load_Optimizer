@@ -72,6 +72,10 @@ class Application(tk.Tk):
         self.minsize(1000, 800)
         init_db()
 
+        self.packed = False  # пакування ще не запускалось
+        self.dirty = False  # чи є незбережені зміни після пакування
+        self.visualization_open = False  # чи зараз відкрите 3D-вік
+
         self.container_data = None
         # self.boxes_data – список словників з даними коробок
         self.boxes_data = []  
@@ -80,7 +84,14 @@ class Application(tk.Tk):
         
         self.show_welcome_screen()
         self.progress_q = queue.Queue()
-        
+
+    def on_viz_close(self, win):
+        win.destroy()
+        self.visualization_open = False
+        # якщо після останнього пакування були зміни — рахуємо їх «готовими» до повторного запуску
+        if self.dirty:
+            self.start_packing_button.config(state="normal")
+
     def show_welcome_screen(self):
         # очищуємо попередні фрейми
         for widget in self.winfo_children():
@@ -143,7 +154,6 @@ class Application(tk.Tk):
             messagebox.showinfo("Готово", f"Сесію «{name}» видалено.")
         except Exception as e:
             messagebox.showerror("Помилка", f"Не вдалося видалити сесію: {e}")
-
 
     def load_and_show(self, session_id: int):
         try:
@@ -211,16 +221,16 @@ class Application(tk.Tk):
 
         self.input_frame = tk.Frame(self.config_frame)
         self.input_frame.grid(row=0, column=0, sticky="nsew", padx=(0, 5))
-        
+
         self.box_list_frame = tk.LabelFrame(self.config_frame, text="Додані коробки", padx=5, pady=5)
         self.box_list_frame.grid(row=0, column=1)
 
         self.box_tree = ttk.Treeview(
             self.box_list_frame,
             columns=("name", "qty", "w", "h", "d", "weight"),
-            show="headings", height=5
-
+            show="headings", height=30
         )
+
         self.box_tree.heading("name", text="Назва")
         self.box_tree.heading("qty", text="К-ть")
         self.box_tree.heading("w", text="W")
@@ -242,15 +252,19 @@ class Application(tk.Tk):
 
         self.box_tree.pack(fill="both")
 
-        edit_btn = tk.Button(self.box_list_frame, text="Змінити кількість",
-                     command=self.edit_selected_box)
-        edit_btn.pack(pady=2)
+        btn_frame = tk.Frame(self.box_list_frame)
+        btn_frame.pack(pady=2)
 
+        edit_btn = tk.Button(btn_frame, text="Змінити",command = self.edit_selected_box)
+        edit_btn.pack(side=tk.LEFT, padx=5)
+
+        delete_btn = tk.Button(btn_frame, text="Видалити", command = self.delete_selected_box)
+        delete_btn.pack(side=tk.LEFT, padx=5)
 
         # Налаштування розтягування колонок
         self.config_frame.columnconfigure(0, weight=3)
         self.config_frame.columnconfigure(1, weight=1)
-        
+
         # Кнопка «Назад»
         tk.Button(self.config_frame, text="← Назад",
                   command=self.show_welcome_screen).grid(row=0, column=2, sticky='nw', padx=5, pady=5)
@@ -258,23 +272,23 @@ class Application(tk.Tk):
         # Введення параметрів контейнера у input_frame
         container_label = tk.Label(self.input_frame, text="Розміри контейнера", font=("Arial", 14))
         container_label.grid(row=0, column=0, columnspan=2, pady=10)
-        
+
         tk.Label(self.input_frame, text="Ширина:").grid(row=1, column=0, sticky='e', padx=5, pady=5)
         self.container_width_entry = tk.Entry(self.input_frame)
         self.container_width_entry.grid(row=1, column=1, padx=5, pady=5)
-        
+
         tk.Label(self.input_frame, text="Висота:").grid(row=2, column=0, sticky='e', padx=5, pady=5)
         self.container_height_entry = tk.Entry(self.input_frame)
         self.container_height_entry.grid(row=2, column=1, padx=5, pady=5)
-        
+
         tk.Label(self.input_frame, text="Глибина:").grid(row=3, column=0, sticky='e', padx=5, pady=5)
         self.container_depth_entry = tk.Entry(self.input_frame)
         self.container_depth_entry.grid(row=3, column=1, padx=5, pady=5)
-        
+
         tk.Label(self.input_frame, text="Максимальна вага:").grid(row=4, column=0, sticky='e', padx=5, pady=5)
         self.container_max_weight_entry = tk.Entry(self.input_frame)
         self.container_max_weight_entry.grid(row=4, column=1, padx=5, pady=5)
-        
+
         # Введення даних для коробок у input_frame
         boxes_label = tk.Label(self.input_frame, text="Додати коробки", font=("Arial", 14))
         boxes_label.grid(row=5, column=0, columnspan=2, pady=10)
@@ -282,30 +296,30 @@ class Application(tk.Tk):
         tk.Label(self.input_frame, text="Назва коробки:").grid(row=6, column=0, sticky='e', padx=5, pady=5)
         self.box_name_entry = tk.Entry(self.input_frame)
         self.box_name_entry.grid(row=6, column=1, padx=5, pady=5)
-        
+
         tk.Label(self.input_frame, text="Ширина:").grid(row=7, column=0, sticky='e', padx=5, pady=5)
         self.box_width_entry = tk.Entry(self.input_frame)
         self.box_width_entry.grid(row=7, column=1, padx=5, pady=5)
-        
+
         tk.Label(self.input_frame, text="Висота:").grid(row=8, column=0, sticky='e', padx=5, pady=5)
         self.box_height_entry = tk.Entry(self.input_frame)
         self.box_height_entry.grid(row=8, column=1, padx=5, pady=5)
-        
+
         tk.Label(self.input_frame, text="Глибина:").grid(row=9, column=0, sticky='e', padx=5, pady=5)
         self.box_depth_entry = tk.Entry(self.input_frame)
         self.box_depth_entry.grid(row=9, column=1, padx=5, pady=5)
-        
+
         tk.Label(self.input_frame, text="Вага:").grid(row=10, column=0, sticky='e', padx=5, pady=5)
         self.box_weight_entry = tk.Entry(self.input_frame)
         self.box_weight_entry.grid(row=10, column=1, padx=5, pady=5)
-        
+
         tk.Label(self.input_frame, text="Кількість:").grid(row=11, column=0, sticky='e', padx=5, pady=5)
         self.box_quantity_entry = tk.Entry(self.input_frame)
         self.box_quantity_entry.grid(row=11, column=1, padx=5, pady=5)
-        
+
         add_box_button = tk.Button(
-            self.input_frame, 
-            text="Додати коробку", 
+            self.input_frame,
+            text="Додати коробку",
             command=self.add_box
         )
 
@@ -315,7 +329,7 @@ class Application(tk.Tk):
             self.input_frame, text="Зчитати JSON",
             command=self.load_from_json
         )
-        load_json_btn.grid(row=13, column=0, columnspan=2, pady=10)   
+        load_json_btn.grid(row=13, column=0, columnspan=2, pady=10)
 
         # Перед кнопкою "Почати упаковку"
         tk.Label(self.input_frame, text="Назва сесії:").grid(row=5, column=0, sticky='e', padx=5, pady=5)
@@ -324,8 +338,8 @@ class Application(tk.Tk):
 
         # Кнопка для запуску процесу упаковки – вона завжди активна, якщо хоча б одна коробка додана
         self.start_packing_button = tk.Button(
-            self.input_frame, 
-            text="Почати упаковку", 
+            self.input_frame,
+            text="Почати упаковку",
             command=self.start_packing,
             state="disabled"  # спочатку вимкнена, поки не додано хоча б одну коробку
         )
@@ -340,7 +354,7 @@ class Application(tk.Tk):
         self.progress_lbl.grid(row=16, column=0, columnspan=2)
 
         self.start_packing_button.grid(row=14, column=0, columnspan=2, pady=10)
-        
+
         # Оновлення правого блоку зі списком коробок
         self.update_box_list()
 
@@ -472,78 +486,107 @@ class Application(tk.Tk):
         self.start_packing_button.config(state="normal")
         # Оновлюємо список доданих коробок (метод update_box_list() вже має бути реалізований)
         self.update_box_list()
+        self.mark_dirty()
 
     def update_box_list(self):
-        # очистити
+        # Очищаємо всі поточні рядки
         for row in self.box_tree.get_children():
             self.box_tree.delete(row)
 
-        for name, data in self.summary_box.items():
+        # Додаємо знову всі коробки з актуальними даними
+        for box in self.boxes_data:
             self.box_tree.insert(
-                "", "end", iid=name,
+                '',
+                'end',
                 values=(
-                    name,
-                    data["count"],
-                    data["width"],
-                    data["height"],
-                    data["depth"],
-                    data["weight"]
+                    box['name'],
+                    box['quantity'],
+                    box['width'],
+                    box['height'],
+                    box['depth'],
+                    box['weight']
                 )
             )
 
     def edit_selected_box(self):
-        selected = self.box_tree.focus()
+        selected = self.box_tree.selection()
         if not selected:
-            messagebox.showinfo("Інфо", "Спершу виберіть коробку у списку.")
+            messagebox.showwarning("Увага", "Оберіть коробку для редагування")
             return
 
-        name = selected
-        current_qty = self.summary_box[name]["count"]
+        # Отримуємо значення вибраного рядка (ім’я коробки)
+        row_id = selected[0]
+        name = self.box_tree.item(row_id)['values'][0]
 
-        # невелике вікно вводу
-        win = tk.Toplevel(self)
-        win.title(f"Змінити кількість – {name}")
-        tk.Label(win, text="Нова кількість:").grid(row=0, column=0, padx=5, pady=5)
-        qty_entry = tk.Entry(win)
-        qty_entry.insert(0, str(current_qty))
-        qty_entry.grid(row=0, column=1, padx=5, pady=5)
+        # Знаходимо об'єкт коробки у self.boxes_data за іменем
+        for box in self.boxes_data:
+            if box['name'] == name:
+                selected_box = box
+                break
+        else:
+            messagebox.showerror("Помилка", f"Не знайдено коробку '{name}'")
+            return
 
-        def apply():
+        # Створюємо модальне вікно для редагування
+        modal = tk.Toplevel(self)
+        modal.title("Редагування коробки")
+        modal.grab_set()
+
+        # Підготовка полів для редагування
+        fields = [
+            ("Name",     selected_box['name']),
+            ("Quantity", selected_box['quantity']),
+            ("Width",    selected_box['width']),
+            ("Height",   selected_box['height']),
+            ("Depth",    selected_box['depth']),
+            ("Weight",   selected_box['weight']),
+        ]
+        entries = {}
+        for r, (label, val) in enumerate(fields):
+            tk.Label(modal, text=label).grid(row=r, column=0, padx=5, pady=5, sticky='e')
+            ent = tk.Entry(modal)
+            ent.insert(0, val)
+            ent.grid(row=r, column=1, padx=5, pady=5)
+            entries[label.lower()] = ent
+
+        # Функція збереження змін
+        def save_changes():
             try:
-                new_qty = int(qty_entry.get())
-                if new_qty < 0:
-                    raise ValueError
+                selected_box['name']     = entries['name'].get().strip()
+                selected_box['quantity'] = int(entries['quantity'].get())
+                selected_box['width']    = float(entries['width'].get())
+                selected_box['height']   = float(entries['height'].get())
+                selected_box['depth']    = float(entries['depth'].get())
+                selected_box['weight']   = float(entries['weight'].get())
             except ValueError:
-                messagebox.showerror("Помилка", "Введіть невід’ємне ціле число.")
+                messagebox.showerror("Помилка", "Некоректні значення полів")
                 return
 
-            diff = new_qty - current_qty
-            self.summary_box[name]["count"] = new_qty
-
-            # синхронізуємо self.boxes_data --------------
-            if diff > 0:            # треба ДОДАТИ копії
-                for b in self.boxes_data:
-                    if b["name"] == name:
-                        b["quantity"] += diff
-                        break
-            else:                   # треба ЗМЕНШИТИ
-                for b in self.boxes_data:
-                    if b["name"] == name:
-                        b["quantity"] = max(0, b["quantity"] + diff)
-                        break
-            # якщо кількість стала 0 – прибираємо запис
-            if new_qty == 0:
-                self.boxes_data = [b for b in self.boxes_data if b["name"] != name]
-                del self.summary_box[name]
-
+            # Оновлюємо відображення таблиці
             self.update_box_list()
-            win.destroy()
+            self.mark_dirty()
+            modal.destroy()
 
-            # якщо списки порожні – вимикаємо кнопку «Почати упаковку»
-            if not self.boxes_data:
-                self.start_packing_button.config(state="disabled")
+        # Кнопка збереження
+        btn_save = tk.Button(modal, text="Зберегти", command=save_changes)
+        btn_save.grid(row=len(fields), column=0, columnspan=2, pady=10)
 
-        tk.Button(win, text="OK", command=apply).grid(row=1, column=0, columnspan=2, pady=5)
+    def delete_selected_box(self):
+        selected = self.box_tree.selection()
+        if not selected:
+            messagebox.showwarning("Увага", "Оберіть коробку для видалення")
+            return
+
+        row_id = selected[0]
+        name = self.box_tree.item(row_id)['values'][0]
+        # Підтвердження видалення
+        if not messagebox.askyesno("Підтвердження", f"Видалити коробку '{name}'?"):
+            return
+
+        # Видаляємо з даних і оновлюємо відображення
+        self.boxes_data = [box for box in self.boxes_data if box['name'] != name]
+        self.update_box_list()
+        self.mark_dirty()
 
     def start_packing(self):
         # Зчитування даних про контейнер
@@ -603,104 +646,86 @@ class Application(tk.Tk):
         try:
             msg = self.progress_q.get_nowait()
         except queue.Empty:
+            # Якщо немає нових повідомлень — перевіряємо ще раз через 100 мс
             self.after(100, self._poll_progress)
             return
 
+        # Якщо оптимізатор завершив роботу
         if msg[0] == "DONE":
             _, optimizer = msg
 
-            # 1) Створюємо фігуру, але не малюємо її на екрані
+            # 1) Створюємо matplotlib-фігуру, але не відображаємо її в GUI
             fig = optimizer.visualize_packing(show=False)
 
-            # 2) Формуємо дані для збереження
+            # 2) Збираємо дані контейнера й коробок для збереження
             container = {
-                "width": float(self.container_width_entry.get()),
-                "height": float(self.container_height_entry.get()),
-                "depth": float(self.container_depth_entry.get()),
+                "width":      float(self.container_width_entry.get()),
+                "height":     float(self.container_height_entry.get()),
+                "depth":      float(self.container_depth_entry.get()),
                 "max_weight": float(self.container_max_weight_entry.get())
             }
             boxes = self.boxes_data.copy()
             name = self.session_name_entry.get().strip() or f"Сесія {time.strftime('%Y-%m-%d %H:%M:%S')}"
 
-            # 3) Зберігаємо в БД
+            # 3) Зберігаємо сесію в БД
             session_id = save_session_to_db(name, container, boxes, fig, optimizer.packed_items)
-
             print(f"[DB] Збережено сесію #{session_id} — «{name}»")
 
-            # 4) Відкриваємо вікно візуалізації замість fig.show()
+            # 4) Відкриваємо вікно з візуалізацією результату
             self.show_visualization(optimizer)
 
-            messagebox.showinfo("Готово", f"Пакування збережено як «{name}»")
-        else:
-            done, total = msg
-            elapsed = time.time() - self.start_time
+            # gui.py, у _poll_progress, відразу після виклику self.show_visualization(optimizer)
+            self.packed = True
+            self.visualization_open = True
+            self.dirty = False
+            # кнопка вже була вимкнена перед стартом, лишаємо її в такому стані
 
-            self.progress['maximum'] = total
-            self.progress['value']   = done
-            percent = done / total * 100
-            self.progress_lbl.config(
-                text=f"{done}/{total}  ({percent:.0f} %)   {elapsed:.1f} с"
-            )
-
-            self.after(100, self._poll_progress)
-
-        try:
-            msg = self.progress_q.get_nowait()
-        except queue.Empty:
-            self.after(100, self._poll_progress)
+            # Повертаємось — більше не читаємо з черги
             return
 
-        # повідомлення
-        if msg[0] == "DONE":
-            _, optimizer = msg
+        # Інакше — це оновлення прогресу
+        done, total = msg
+        elapsed = time.time() - self.start_time
 
-            container = {
-                "width": float(self.container_width_entry.get()),
-                "height": float(self.container_height_entry.get()),
-                "depth": float(self.container_depth_entry.get()),
-                "max_weight": float(self.container_max_weight_entry.get())
-            }
-            boxes = self.boxes_data.copy()
-            name = self.session_name_entry.get().strip() or f"Сесія {time.strftime('%Y-%m-%d %H:%M:%S')}"
+        self.progress['maximum'] = total
+        self.progress['value']   = done
+        percent = done / total * 100
+        self.progress_lbl.config(
+            text=f"{done}/{total} ({percent:.0f} %)   {elapsed:.1f} с"
+        )
 
-            # 3) Зберігаємо в БД
-            session_id = save_session_to_db(name, container, boxes, fig)
-            print(f"[DB] Збережено сесію #{session_id} — «{name}»")
-
-            # замість fig.show() — викликаємо власне Toplevel
-            self.show_visualization(optimizer)
-            messagebox.showinfo(...)
-
-        else:  # отримали (done, total)
-            done, total = msg
-            elapsed = time.time() - self.start_time   # ⬅️ секунд від початку
-
-            self.progress['maximum'] = total
-            self.progress['value']   = done
-            percent = done / total * 100
-            self.progress_lbl.config(
-                text=f"{done}/{total}  ({percent:.0f} %)   {elapsed:.1f} с"
-            )
-
-            self.after(100, self._poll_progress)
+        # Запланувати наступну перевірку
+        self.after(100, self._poll_progress)
 
     def show_visualization(self, optimizer: PackingOptimizer):
+        # Одне єдине вікно візуалізації
         win = tk.Toplevel(self)
         win.title("3D Візуалізація пакування")
+        win.protocol("WM_DELETE_WINDOW", lambda: self.on_viz_close(win))
 
-        # Панель чекбоксів
+        # Панель керування зліва
         controls = tk.Frame(win)
         controls.pack(side=tk.LEFT, fill=tk.Y, padx=5, pady=5)
 
-        # Фігура і вісь
+        util_lbl = tk.Label(
+            controls,
+            text=f"Використано простору: {optimizer.space_utilization:.2f}%"
+        )
+        util_lbl.pack(anchor='w', pady=(0, 10))
+
+        failed_btn = tk.Button(
+            controls,
+            text="Показати непридатні коробки",
+            command=lambda: self.show_failed_modal(optimizer.failed_items)
+        )
+        failed_btn.pack(anchor='w', pady=(0, 10))
+
+        # Створюємо 3D-фігуру
         fig = plt.Figure(figsize=(8, 6))
         ax = fig.add_subplot(111, projection='3d')
-        # Вимикаємо показ координат курсору
         ax.format_coord = lambda x, y: ""
-        # Малюємо контейнер
         optimizer._draw_container(ax)
 
-        # Збираємо полигони та тексти по назвах коробок
         artists_by_name: dict[str, list] = {}
         for item in optimizer.packed_items:
             x, y, z = item['position']
@@ -723,14 +748,13 @@ class Application(tk.Tk):
             ax.add_collection3d(poly)
             artists_by_name.setdefault(item['name'], []).append(poly)
 
-            center = np.array([x + w / 2, y + d / 2, z + h / 2])
+            center = np.array([x + w/2, y + d/2, z + h/2])
             txt = ax.text(
                 center[0], center[1], center[2],
                 item['name'], fontsize=8, ha='center', va='center'
             )
             artists_by_name[item['name']].append(txt)
 
-        # Межі та пропорції осей
         ax.set_xlim(0, optimizer.container.width)
         ax.set_ylim(0, optimizer.container.depth)
         ax.set_zlim(0, optimizer.container.height)
@@ -743,18 +767,17 @@ class Application(tk.Tk):
         except AttributeError:
             pass
 
-        # Вбудовуємо canvas і toolbar
+        # Поміщаємо canvas у те саме вікно
         canvas = FigureCanvasTkAgg(fig, master=win)
         canvas.draw()
         canvas.get_tk_widget().pack(side=tk.RIGHT, fill='both', expand=True)
+
         toolbar = NavigationToolbar2Tk(canvas, win)
         toolbar.update()
         toolbar.pack(side=tk.BOTTOM, fill='x')
 
-        # Підготовка змінних для чекбоксів
+        # Чекбокси для керування видимістю
         var_by_name: dict[str, tk.BooleanVar] = {}
-
-        # Глобальний чекбокс «Усі коробки»
         all_var = tk.BooleanVar(value=True)
 
         def toggle_all():
@@ -766,28 +789,66 @@ class Application(tk.Tk):
             canvas.draw()
 
         cb_all = tk.Checkbutton(
-            controls, text="Усі коробки",
-            variable=all_var, command=toggle_all
+            controls, text="Усі коробки", variable=all_var, command=toggle_all
         )
-        cb_all.pack(anchor='w', pady=(0, 10))
+        cb_all.pack(anchor='w', pady=(10, 10))
 
-        # Індивідуальні чекбокси по назвах
         for name in artists_by_name:
             var = tk.BooleanVar(value=True)
             var_by_name[name] = var
-
-            def make_callback(n, v):
+            def make_cb(n, v):
                 return lambda: (
                     [art.set_visible(v.get()) for art in artists_by_name[n]],
                     canvas.draw()
                 )
-
             cb = tk.Checkbutton(
-                controls, text=name,
-                variable=var,
-                command=make_callback(name, var)
+                controls, text=name, variable=var,
+                command=make_cb(name, var)
             )
             cb.pack(anchor='w')
+
+    def show_failed_modal(self, failed_items: dict):
+        modal = tk.Toplevel(self)
+        modal.title("Непридатні коробки")
+        modal.grab_set()  # робимо модальним
+
+        frame = ttk.Frame(modal)
+        frame.pack(fill='both', expand=True, padx=10, pady=10)
+        frame.rowconfigure(0, weight=1)
+        frame.columnconfigure(0, weight=1)
+
+        # Treeview для failed_items
+        tree = ttk.Treeview(
+            frame,
+            columns=("name", "qty"),
+            show="headings",
+            height=10
+        )
+        tree.heading("name", text="Назва коробки")
+        tree.heading("qty", text="К-ть")
+        tree.column("name", width=200, anchor='w')
+        tree.column("qty", width=60, anchor='center')
+
+        for name, cnt in failed_items.items():
+            tree.insert("", "end", values=(name, cnt))
+
+        vsb = ttk.Scrollbar(frame, orient='vertical', command=tree.yview)
+        tree.configure(yscrollcommand=vsb.set)
+        tree.grid(row=0, column=0, sticky='nsew')
+        vsb.grid(row=0, column=1, sticky='ns')
+
+        # Кнопка для закриття модального вікна
+        close_btn = tk.Button(modal, text="Закрити", command=modal.destroy)
+        close_btn.pack(pady=5)
+
+    def mark_dirty(self):
+        # якщо ще не було жодного пакування — нічого не робимо
+        if not self.packed:
+            return
+        self.dirty = True
+        # якщо 3D-вікно вже закрите — одразу розблоковуємо кнопку
+        if not self.visualization_open:
+            self.start_packing_button.config(state="normal")
 
 if __name__ == "__main__":
     app = Application()
